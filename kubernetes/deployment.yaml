@@ -19,7 +19,7 @@ spec:
       - name: ghcr-secret
       containers:
       - name: tictaktoe
-        image: ghcr.io/kihara-njoroge/tictaktoe-devsecops:sha-9f4296e
+        image: ghcr.io/kihara-njoroge/tictaktoe-devsecops:sha-7d1048f
         imagePullPolicy: Always
         ports:
         - containerPort: 80
