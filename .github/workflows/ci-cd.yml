@@ -144,9 +144,10 @@ jobs:
         id: set_output
         run: |
           IMAGE_TAG="sha-$(echo ${{ github.sha }} | cut -c1-7)"
+          IMAGE_NAME_LOWER=$(echo "${{ github.repository_owner }}/tictaktoe-devsecops" | tr '[:upper:]' '[:lower:]')
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
-          echo "image_full=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
-
+          echo "image_full=ghcr.io/${IMAGE_NAME_LOWER}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          
   update-k8s:
     name: Update Kubernetes Manifest
     runs-on: ubuntu-latest
