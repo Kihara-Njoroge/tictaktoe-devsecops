@@ -79,7 +79,7 @@ jobs:
     needs: [build]
     env:
       REGISTRY: ghcr.io
-      IMAGE_NAME: ${{ github.repository }}
+      IMAGE_NAME: ${{ github.repository_owner }}/tictaktoe-devsecops
     outputs:
       image_tag: ${{ steps.set_output.outputs.image_tag }}
       image_full: ${{ steps.set_output.outputs.image_full }}
@@ -187,7 +187,7 @@ jobs:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     environment:
       name: production
-      url: https://your-app-url.com
+      url: https://your-app-url.comg
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
