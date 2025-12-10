@@ -141,7 +141,7 @@ jobs:
       
       - name: Set image tag output
         id: set_output
-        run: echo "image_tag=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+        run: echo "image_tag=sha-${{ github.sha }}" >> $GITHUB_OUTPUT
 
   update-k8s:
     name: Update Kubernetes Deployment
@@ -161,7 +161,7 @@ jobs:
       
       - name: Update Kubernetes deployment file
         env:
-          IMAGE_TAG: sha-${{ github.sha }}
+          IMAGE_TAG: ${{ needs.docker.outputs.image_tag }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           REGISTRY: ghcr.io
         run: |
