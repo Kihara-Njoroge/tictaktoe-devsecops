@@ -82,6 +82,7 @@ jobs:
       IMAGE_NAME: ${{ github.repository }}
     outputs:
       image_tag: ${{ steps.set_output.outputs.image_tag }}
+      image_full: ${{ steps.set_output.outputs.image_full }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -141,10 +142,13 @@ jobs:
       
       - name: Set image tag output
         id: set_output
-        run: echo "image_tag=sha-$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+        run: |
+          IMAGE_TAG="sha-$(echo ${{ github.sha }} | cut -c1-7)"
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "image_full=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
   update-k8s:
-    name: Update Kubernetes Deployment
+    name: Update Kubernetes Manifest
     runs-on: ubuntu-latest
     needs: [docker]
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
@@ -161,18 +165,13 @@ jobs:
       
       - name: Update Kubernetes deployment file
         env:
-          IMAGE_TAG: ${{ needs.docker.outputs.image_tag }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          REGISTRY: ghcr.io
+          IMAGE_FULL: ${{ needs.docker.outputs.image_full }}
         run: |
-          # Define the new image with tag
-          NEW_IMAGE="${REGISTRY}/${GITHUB_REPOSITORY}:${IMAGE_TAG}"
-          
           # Update the deployment file directly
-          sed -i "s|image: ${REGISTRY}/.*|image: ${NEW_IMAGE}|g" kubernetes/deployment.yaml
+          sed -i "s|image: ghcr.io/.*|image: ${IMAGE_FULL}|g" kubernetes/deployment.yaml
           
           # Verify the change
-          echo "Updated deployment to use image: ${NEW_IMAGE}"
+          echo "Updated deployment to use image: ${IMAGE_FULL}"
           grep -A 1 "image:" kubernetes/deployment.yaml
       
       - name: Commit and push changes
@@ -180,3 +179,55 @@ jobs:
           git add kubernetes/deployment.yaml
           git commit -m "Update Kubernetes deployment with new image tag: ${{ needs.docker.outputs.image_tag }} [skip ci]" || echo "No changes to commit"
           git push
+
+  deploy-to-aks:
+    name: Deploy to AKS
+    runs-on: ubuntu-latest
+    needs: [docker, update-k8s]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://your-app-url.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: master
+      
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Set AKS context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          cluster-name: ${{ secrets.AZURE_CLUSTER_NAME }}
+      
+      - name: Create namespace if not exists
+        run: |
+          kubectl create namespace tictaktoe --dry-run=client -o yaml | kubectl apply -f -
+      
+      - name: Create image pull secret
+        run: |
+          kubectl create secret docker-registry ghcr-secret \
+            --namespace=tictaktoe \
+            --docker-server=ghcr.io \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.TOKEN }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+      
+      - name: Deploy to AKS
+        run: |
+          kubectl apply -f kubernetes/ -n tictaktoe
+      
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/tictaktoe-deployment -n tictaktoe --timeout=300s
+      
+      - name: Get service endpoint
+        run: |
+          echo "Deployment successful!"
+          kubectl get services -n tictaktoe
+          kubectl get pods -n tictaktoe
