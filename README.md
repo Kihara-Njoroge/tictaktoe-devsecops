@@ -209,8 +209,6 @@ az group create \
   --location eastus
 ```
 
-Available locations: `eastus`, `westeurope`, `southeastasia`, `uksouth`, etc.
-
 ### Step 5: Create AKS Cluster
 
 **Basic Setup (Recommended for testing):**
@@ -522,18 +520,3 @@ kubectl get events -n tictaktoe --sort-by='.lastTimestamp'
 -   **Secure Secrets**: All sensitive data stored in GitHub Secrets
 -   **Image Pull Secrets**: Kubernetes secret for private container registry access
 -   **Network Security**: Azure NSG controls inbound/outbound traffic
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License.
-
-## Acknowledgments
-
--   Built with React, TypeScript, and Vite
--   Deployed on Azure Kubernetes Service
--   CI/CD powered by GitHub Actions
--   Security scanning by Trivy
